@@ -4,11 +4,15 @@ A Python-based AWS FinOps dashboard that analyzes infrastructure utilization,
 identifies rightsizing and idle-resource opportunities, and models potential
 savings across a synthetic multi-account AWS environment.
 
-> **Simulated AWS environment — estimated savings, not realized customer
-> results.** This project runs entirely on deterministic synthetic data and
-> documents its pricing assumptions. It does not connect to any AWS account.
+> **This is a portfolio demonstration using synthetic AWS data. The savings are
+> modeled estimates, not verified customer savings. Live AWS collectors are not
+> yet implemented.** This project never connects to any AWS account.
 
 ---
+
+## Dashboard
+
+![AWS Cost Optimization Toolkit dashboard](reports/dashboard-full.png)
 
 ## What it demonstrates
 
@@ -39,6 +43,42 @@ savings across a synthetic multi-account AWS environment.
 
 These figures are produced by the engine from documented pricing assumptions
 (`docs/pricing-assumptions.md`). No value is hardcoded to hit a target.
+
+## How recommendations are calculated
+
+1. The **synthetic provider** (`src/costtk/providers/sample.py`) generates a
+   deterministic multi-account, multi-region inventory with per-resource
+   utilization, ownership, and pricing attributes.
+2. **One rule per action type** (`src/costtk/engine/rules/`) inspects resources
+   and emits a candidate recommendation **only when sufficient evidence is
+   present**. A missing metric blocks a recommendation — it is never treated as
+   zero usage, and ownership/evidence insufficiencies gate emissions.
+3. **Classification** tags each recommendation with effort, risk, restart
+   requirement, and rollback feasibility.
+4. **Savings** are computed as `current − projected` from documented pricing
+   assumptions (e.g. Graviton ≈ 20% cheaper, Savings Plans ≈ 28%, RIs ≈ 42%).
+
+## How overlapping savings are handled (deduplication)
+
+Overlapping recommendations on the same resource are **never summed**. Physical
+changes (stop-idle, rightsize, graviton, schedule) are mutually exclusive — the
+highest-confidence survivor is kept and the rest are dropped (recorded as
+`deduped_from`). Commitments (Savings Plans, Reserved Instances) are then
+**re-based** against the reduced physical footprint rather than stacked on the
+pre-change cost. See `docs/risk-methodology.md` for the precedence rules.
+
+## AWS integration status
+
+| Component | Status |
+|---|---|
+| Synthetic provider (demo) | ✅ Functional — default data source |
+| Live boto3 collectors | ⚠️ **Stub / not implemented** — no live collectors exist |
+| Read-only IAM policy example (`data/iam-policy.json`) | ✅ Provided (descriptive/get APIs only) |
+| `collect_aws.py` entrypoint | ✅ Guard — refuses to run without explicit double opt-in |
+
+The demo, tests, and CI never call AWS. Live collection must be explicitly
+enabled (`COSTTK_COLLECTOR=live COSTTK_READ_ONLY=1`) and is documented as
+incomplete.
 
 ---
 
@@ -94,7 +134,7 @@ A sample export is committed at `reports/recommendations-sample.csv`.
 src/costtk/
   models.py           dataclasses + enums (Resource, Recommendation, states)
   config.py           env gating (synthetic by default)
-  providers/          base ABC + synthetic provider (+ stubbed boto3 adapters)
+  providers/          base ABC + synthetic provider (live collectors not implemented)
   engine/
     rules/            one generator per action type
     classify.py       effort/risk/restart/confidence
@@ -121,12 +161,12 @@ docs/                 architecture · pricing · risk · security
 
 ## Portfolio description (Upwork / GitHub)
 
-**Title:** AWS Cost Optimization Dashboard | 35% Savings Scenario
+**Title:** AWS Cost Optimization Dashboard | 33% Savings Simulation
 
 Built a Python-based AWS cost optimization dashboard that analyzes
 infrastructure utilization, identifies rightsizing and idle-resource
 opportunities, and models potential savings. A synthetic multi-account
-demonstration illustrates approximately 35% potential monthly cost reduction,
+demonstration illustrates approximately 33% potential monthly cost reduction,
 with recommendation deduplication, operational risk assessment, and
 before/after cost comparison.
 
