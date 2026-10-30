@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+*.egg
+
+# Virtualenvs
+.venv/
+venv/
+env/
+
+# Test / tooling caches
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Data / generated output
+data/synthesized/
+*.sqlite
+*.db
+reports/*.csv
+!reports/recommendations-sample.csv
+reports/*.png
+!reports/dashboard-full.png
+!reports/dashboard-viewport.png
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Secrets — never commit
+.env
+*.pem
+credentials/
